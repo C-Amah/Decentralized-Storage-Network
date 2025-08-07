@@ -219,3 +219,89 @@
     (/ (* successes u100) total)
     u0)
 )
+
+;; Helper function to calculate reward rate based on reputation and commitment parameters
+(define-read-only (calculate-reward-rate
+  (node-reputation {
+    total-storage-attempts: uint,
+    successful-storage-completions: uint,
+    failed-storage-tasks: uint,
+    total-data-stored: uint,
+    reputation-score: uint,
+    last-activity-block: uint,
+    verification-success-rate: uint
+  })
+  (duration-blocks uint)
+  (stake-amount uint)
+)
+  (let
+    ((base-rate u5) ;; 5% base rate
+     (duration-bonus (if (> duration-blocks u4320) u2 u0)) ;; Bonus for long-term storage (>30 days)
+     (stake-bonus (if (> stake-amount u1000) u1 u0)) ;; Bonus for higher stake
+     (reputation-bonus (/ (get reputation-score node-reputation) u50)) ;; Reputation-based bonus
+    )
+    
+    (+ base-rate duration-bonus stake-bonus reputation-bonus)
+  )
+)
+
+;; Helper function to calculate incentive multiplier
+(define-read-only (calculate-incentive-multiplier
+  (node-reputation {
+    total-storage-attempts: uint,
+    successful-storage-completions: uint,
+    failed-storage-tasks: uint,
+    total-data-stored: uint,
+    reputation-score: uint,
+    last-activity-block: uint,
+    verification-success-rate: uint
+  })
+  (storage-entry {
+    uploader: principal,
+    file-hash: (buff 32),
+    encryption-key: (optional (buff 32)),
+    file-size: uint,
+    storage-nodes: (list 10 principal),
+    state: uint,
+    upload-timestamp: uint,
+    expiration-block: uint,
+    access-control: {
+      public-access: bool,
+      allowed-principals: (list 10 principal),
+      encryption-required: bool
+    },
+    metadata: {
+      file-type: (string-utf8 50),
+      category: (string-utf8 50),
+      tags: (list 5 (string-utf8 30))
+    }
+  })
+)
+  (let
+    ((size-factor (if (> (get file-size storage-entry) u1048576) u5 u2)) ;; Higher incentive for larger files (>1MB)
+     (encryption-factor (if (get encryption-required (get access-control storage-entry)) u3 u1)) ;; Higher incentive for encrypted storage
+    )
+    
+    (* size-factor encryption-factor)
+  )
+)
+
+(define-read-only (get-commitment-details (commitment-id uint))
+  (map-get? storage-commitments {commitment-id: commitment-id})
+)
+
+(define-read-only (get-commitment-fulfillment-details (commitment-id uint))
+  (map-get? commitment-fulfillment {commitment-id: commitment-id})
+)
+
+(define-read-only (get-active-commitments-by-node (node principal))
+  ;; Note: In practice, this would require an indexing mechanism or custom API
+  ;; This is a placeholder for the functionality
+  (ok true)
+)
+
+(define-read-only (calculate-node-total-rewards (node principal))
+  ;; Note: In practice, this would require an indexing mechanism or custom API
+  ;; This is a placeholder for the functionality
+  (ok u0)
+)
