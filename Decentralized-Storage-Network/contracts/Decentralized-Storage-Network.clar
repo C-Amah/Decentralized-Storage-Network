@@ -113,3 +113,46 @@
     (ok true)
   )
 )
+
+;; Read-only Functions for Retrieving Information
+(define-read-only (get-storage-details (storage-id uint))
+  (map-get? storage-entries {storage-id: storage-id})
+)
+
+(define-read-only (get-storage-node-reputation (node principal))
+  (map-get? storage-node-reputation node)
+)
+
+(define-read-only (get-file-access-log (storage-id uint) (accessor principal))
+  (map-get? file-access-logs {storage-id: storage-id, accessor: accessor})
+)
+
+;; New Error Codes for Commitments
+(define-constant ERR-COMMITMENT-NOT-FOUND (err u109))
+(define-constant ERR-INVALID-COMMITMENT (err u110))
+(define-constant ERR-COMMITMENT-EXPIRED (err u111))
+(define-constant ERR-ALREADY-COMMITTED (err u112))
+
+;; New Commitment States
+(define-constant COMMITMENT-ACTIVE u0)
+(define-constant COMMITMENT-FULFILLED u1)
+(define-constant COMMITMENT-BREACHED u2)
+(define-constant COMMITMENT-EXPIRED u3)
+
+;; Storage Commitments Map
+(define-map storage-commitments
+  {commitment-id: uint}
+  {
+    storage-id: uint,
+    node: principal,
+    commit-block: uint,
+    duration-blocks: uint,
+    expiration-block: uint,
+    stake-amount: uint,
+    reward-rate: uint,
+    state: uint,
+    verification-count: uint,
+    last-verified-block: uint,
+    incentive-multiplier: uint
+  }
+)
