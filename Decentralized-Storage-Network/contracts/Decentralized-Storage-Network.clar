@@ -156,3 +156,66 @@
     incentive-multiplier: uint
   }
 )
+
+;; Commitment Fulfillment Records
+(define-map commitment-fulfillment
+  {commitment-id: uint}
+  {
+    fulfillment-block: uint,
+    rewards-earned: uint,
+    performance-score: uint,
+    stake-returned: bool
+  }
+)
+
+;; Global statistics variables
+(define-data-var total-storage-count uint u0)
+(define-data-var total-commitment-count uint u0)
+(define-data-var total-active-storage-size uint u0)
+
+;; Helper function to calculate storage node rewards
+(define-read-only (calculate-rewards
+  (commitment {
+    storage-id: uint,
+    node: principal,
+    commit-block: uint,
+    duration-blocks: uint,
+    expiration-block: uint,
+    stake-amount: uint,
+    reward-rate: uint,
+    state: uint,
+    verification-count: uint,
+    last-verified-block: uint,
+    incentive-multiplier: uint
+  })
+  (node-reputation {
+    total-storage-attempts: uint,
+    successful-storage-completions: uint,
+    failed-storage-tasks: uint,
+    total-data-stored: uint,
+    reputation-score: uint,
+    last-activity-block: uint,
+    verification-success-rate: uint
+  })
+)
+  (let
+    ((base-reward (* (get stake-amount commitment) (get reward-rate commitment)))
+     (verification-bonus (* (get verification-count commitment) u10))
+     (reputation-multiplier (/ (+ u100 (get reputation-score node-reputation)) u100))
+     (incentive-bonus (* base-reward (get incentive-multiplier commitment)))
+    )
+    
+    ;; Calculate total reward
+    (/ (* (+ base-reward verification-bonus incentive-bonus) reputation-multiplier) u100)
+  )
+)
+
+;; Helper function to calculate verification success rate
+(define-read-only (calculate-success-rate
+  (successes uint)
+  (total uint)
+)
+  (if (> total u0)
+    (/ (* successes u100) total)
+    u0)
+)
